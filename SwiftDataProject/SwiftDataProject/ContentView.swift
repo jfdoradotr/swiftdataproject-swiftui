@@ -9,7 +9,15 @@ struct ContentView: View {
   @Environment(\.modelContext) var modelContext
   @Query(
     filter: #Predicate<User> { user in
-      user.name.localizedStandardContains("R") && user.city == "London"
+      if user.name.localizedStandardContains("R") {
+        if user.city == "London" {
+          return true
+        } else {
+          return false
+        }
+      } else {
+        return false
+      }
     },
     sort: \User.name
   ) var users: [User]
