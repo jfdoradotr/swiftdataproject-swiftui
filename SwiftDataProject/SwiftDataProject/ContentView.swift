@@ -8,10 +8,17 @@ import SwiftUI
 struct ContentView: View {
   @Environment(\.modelContext) var modelContext
   @State private var showingUpcomingOnly = false
+  @State private var sortOrder = [
+    SortDescriptor(\User.name),
+    SortDescriptor(\User.joinDate)
+  ]
 
   var body: some View {
     NavigationStack {
-      UsersView(minimumJoinDate: showingUpcomingOnly ? .now : .distantPast)
+      UsersView(
+        minimumJoinDate: showingUpcomingOnly ? .now : .distantPast,
+        sortOrder: sortOrder
+      )
       .navigationTitle("Users")
       .toolbar {
         Button("Add Samples", systemImage: "plus") {
