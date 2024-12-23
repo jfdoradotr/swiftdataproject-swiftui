@@ -112,13 +112,11 @@ Foundation.Predicate<User>({ user in
 - Keep in mind that the body of a predicate must consist of a single expression.
 - Expanding the macro can provide insights into how SwiftData translates your code, helping you write valid and optimized predicates.
 
-## Summary
+### Dynamic Filtering and Sorting
 
-This project illustrates the ease and power of SwiftData, especially when working with persistence and filtering. By understanding how `@Bindable` and `#Predicate` work, developers can harness these tools to build more efficient and maintainable codebases.
+#### Constructor Injection for Filtering
 
-## More notes I want to add.
-
-An approach to change the filtering dynamically is using for example a constructor injection
+You can dynamically change the filtering by using constructor injection:
 
 ```swift
 struct UsersView: View {
@@ -141,14 +139,16 @@ struct UsersView: View {
 }
 ```
 
-We can have our `@Query` and initialize in this case `_users` with underscore and initialize the filter based in the condition.
+Usage:
 
-So our usage is as simple as
 ```swift
 UsersView(minimumJoinDate: showingUpcomingOnly ? .now : .distantPast)
 ```
 
-- if we want to do the same with the sort we can inject the SortDescriptor too
+#### Adding Sort Descriptors
+
+You can also inject sort descriptors:
+
 ```swift
 init(minimumJoinDate: Date, sortOrder: [SortDescriptor<User>]) {
     _users = Query(
@@ -157,37 +157,142 @@ init(minimumJoinDate: Date, sortOrder: [SortDescriptor<User>]) {
       },
       sort: sortOrder
     )
-  }
+}
 ```
 
-And our usage can be as simple as
+Usage:
 
-```
+```swift
 @State private var sortOrder = [
     SortDescriptor(\User.name),
     SortDescriptor(\User.joinDate)
-  ]
-
+]
 
 UsersView(
         minimumJoinDate: showingUpcomingOnly ? .now : .distantPast,
         sortOrder: sortOrder
-      )
+)
 ```
 
-But what if we want to make them dynamically, well one option is using tags
+#### Dynamic Sorting with Picker
 
 ```swift
 Picker("Sort", selection: $sortOrder) {
-          Text("Sort by Name")
-            .tag([
-              SortDescriptor(\User.name),
-              SortDescriptor(\User.joinDate)
-            ])
-          Text("Sort by Join Date")
-            .tag([
-              SortDescriptor(\User.joinDate),
-              SortDescriptor(\User.name)
-            ])
-        }
+    Text("Sort by Name")
+        .tag([
+            SortDescriptor(\User.name),
+            SortDescriptor(\User.joinDate)
+        ])
+    Text("Sort by Join Date")
+        .tag([
+            SortDescriptor(\User.joinDate),
+            SortDescriptor(\User.name)
+        ])
+}
 ```
+
+For better UX when using many buttons, consider a `Menu`:
+
+```swift
+Menu("Sort", systemImage: "arrow.up.arrow.down") {
+    Picker("Sort", selection: $sortOrder) {
+        Text("Sort by Name")
+            .tag([
+                SortDescriptor(\User.name),
+                SortDescriptor(\User.joinDate)
+            ])
+        Text("Sort by Join Date")
+            .tag([
+                SortDescriptor(\User.joinDate),
+                SortDescriptor(\User.name)
+            ])
+    }
+}
+```
+
+### Working with Relationships
+
+Relationships in SwiftData are intuitive. Consider the following `User` model:
+
+```swift
+@Model
+class User {
+  var name: String
+  var city: String
+  var joinDate: Date
+
+  init(name: String, city: String, joinDate: Date) {
+    self.name = name
+    self.city = city
+    self.joinDate = joinDate
+  }
+}
+```
+
+We can create a `Job` model and link it to a `User`:
+
+```swift
+@Model
+class Job {
+  var name: String
+  var priority: Int
+  var owner: User?
+
+  init(name: String, priority: Int, owner: User? = nil) {
+    self.name = name
+    self.priority = priority
+    self.owner = owner
+  }
+}
+```
+
+Update `User` to support multiple jobs:
+
+```swift
+var jobs = [Job]()
+```
+
+#### Handling Migrations
+
+Adding relationships is seamless. SwiftData performs migrations under the hood, but custom migrations can be created for complex scenarios.
+
+Example:
+
+```swift
+@main
+struct SwiftDataProjectApp: App {
+  var body: some Scene {
+    WindowGroup {
+      ContentView()
+    }
+    .modelContainer(for: User.self)
+  }
+}
+```
+
+Adding users and jobs:
+
+```swift
+func addSample() {
+    let user1 = User(name: "Piper Chapman", city: "New York", joinDate: .now)
+    let job1 = Job(name: "Organize sock drawer", priority: 3)
+    let job2 = Job(name: "Make plans with Alex", priority: 4)
+
+    modelContext.insert(user1)
+
+    user1.jobs.append(job1)
+    user1.jobs.append(job2)
+}
+```
+
+#### Cascade Deletion
+
+By default, deleting a `User` does not delete associated jobs. To enable cascading deletions:
+
+```swift
+@Relationship(deleteRule: .cascade) var jobs = [Job]()
+```
+
+## Summary
+
+This project illustrates the ease and power of SwiftData, especially when working with persistence, filtering, and relationships. With features like `@Bindable`, `#Predicate`, dynamic filtering, and seamless relationship management, SwiftData simplifies complex workflows and enhances code maintainability.
