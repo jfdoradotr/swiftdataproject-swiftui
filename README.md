@@ -115,3 +115,79 @@ Foundation.Predicate<User>({ user in
 ## Summary
 
 This project illustrates the ease and power of SwiftData, especially when working with persistence and filtering. By understanding how `@Bindable` and `#Predicate` work, developers can harness these tools to build more efficient and maintainable codebases.
+
+## More notes I want to add.
+
+An approach to change the filtering dynamically is using for example a constructor injection
+
+```swift
+struct UsersView: View {
+  @Query var users: [User]
+
+  var body: some View {
+    List(users) { user in
+      Text(user.name)
+    }
+  }
+
+  init(minimumJoinDate: Date) {
+    _users = Query(
+      filter: #Predicate<User> { user in
+        user.joinDate >= minimumJoinDate
+      },
+      sort: \User.name
+    )
+  }
+}
+```
+
+We can have our `@Query` and initialize in this case `_users` with underscore and initialize the filter based in the condition.
+
+So our usage is as simple as
+```swift
+UsersView(minimumJoinDate: showingUpcomingOnly ? .now : .distantPast)
+```
+
+- if we want to do the same with the sort we can inject the SortDescriptor too
+```swift
+init(minimumJoinDate: Date, sortOrder: [SortDescriptor<User>]) {
+    _users = Query(
+      filter: #Predicate<User> { user in
+        user.joinDate >= minimumJoinDate
+      },
+      sort: sortOrder
+    )
+  }
+```
+
+And our usage can be as simple as
+
+```
+@State private var sortOrder = [
+    SortDescriptor(\User.name),
+    SortDescriptor(\User.joinDate)
+  ]
+
+
+UsersView(
+        minimumJoinDate: showingUpcomingOnly ? .now : .distantPast,
+        sortOrder: sortOrder
+      )
+```
+
+But what if we want to make them dynamically, well one option is using tags
+
+```swift
+Picker("Sort", selection: $sortOrder) {
+          Text("Sort by Name")
+            .tag([
+              SortDescriptor(\User.name),
+              SortDescriptor(\User.joinDate)
+            ])
+          Text("Sort by Join Date")
+            .tag([
+              SortDescriptor(\User.joinDate),
+              SortDescriptor(\User.name)
+            ])
+        }
+```
