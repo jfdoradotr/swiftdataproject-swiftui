@@ -7,26 +7,11 @@ import SwiftUI
 
 struct ContentView: View {
   @Environment(\.modelContext) var modelContext
-  @Query(
-    filter: #Predicate<User> { user in
-      if user.name.localizedStandardContains("R") {
-        if user.city == "London" {
-          return true
-        } else {
-          return false
-        }
-      } else {
-        return false
-      }
-    },
-    sort: \User.name
-  ) var users: [User]
+  @State private var showingUpcomingOnly = false
 
   var body: some View {
     NavigationStack {
-      List(users) { user in
-        Text(user.name)
-      }
+      UsersView(minimumJoinDate: showingUpcomingOnly ? .now : .distantPast)
       .navigationTitle("Users")
       .toolbar {
         Button("Add Samples", systemImage: "plus") {
@@ -40,6 +25,10 @@ struct ContentView: View {
           modelContext.insert(second)
           modelContext.insert(third)
           modelContext.insert(fourth)
+        }
+
+        Button(showingUpcomingOnly ? "Show Everyone" : "Show Upcoming") {
+          showingUpcomingOnly.toggle()
         }
       }
     }
